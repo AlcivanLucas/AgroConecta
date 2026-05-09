@@ -2,7 +2,7 @@ import { initializeApp, getApps, cert, type ServiceAccount } from 'firebase-admi
 import { getFirestore } from 'firebase-admin/firestore'
 
 // Initialize Firebase Admin SDK only once
-if (!getApps().length) {
+if (!getApps().length && process.env.FIREBASE_PROJECT_ID) {
   const serviceAccount: ServiceAccount = {
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,

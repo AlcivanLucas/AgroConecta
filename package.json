@@ -63,6 +63,9 @@
     "vaul": "^1.1.2",
     "zod": "^3.24.1"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@firebase/util", "protobufjs", "sharp", "bcryptjs"]
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",
     "@types/bcryptjs": "^3.0.0",
