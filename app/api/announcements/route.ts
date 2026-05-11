@@ -13,24 +13,47 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state')
     const search = searchParams.get('search')
 
-    let query = announcementsCollection.where('isActive', '==', true)
+    let snapshot
 
-    if (category) {
-      query = query.where('category', '==', category)
+    if (category || city || state) {
+      // Query by specific filter only to avoid composite index requirement,
+      // then filter isActive in memory
+      let baseQuery
+      if (category) {
+        baseQuery = announcementsCollection.where('category', '==', category)
+      } else if (state) {
+        baseQuery = announcementsCollection.where('state', '==', state)
+      } else {
+        baseQuery = announcementsCollection.where('city', '==', city)
+      }
+      snapshot = await baseQuery.get()
+    } else {
+      snapshot = await announcementsCollection
+        .where('isActive', '==', true)
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get()
     }
-    if (city) {
-      query = query.where('city', '==', city)
-    }
-    if (state) {
-      query = query.where('state', '==', state)
-    }
-
-    const snapshot = await query.orderBy('createdAt', 'desc').limit(50).get()
 
     let announcements = snapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id,
     })) as Announcement[]
+
+    // Apply remaining filters in memory
+    if (category || city || state) {
+      if (category) announcements = announcements.filter(a => a.category === category)
+      if (city) announcements = announcements.filter(a => a.city === city)
+      if (state) announcements = announcements.filter(a => a.state === state)
+      announcements = announcements
+        .filter(a => a.isActive)
+        .sort((a, b) => {
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)._seconds * 1000
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)._seconds * 1000
+          return bTime - aTime
+        })
+        .slice(0, 50)
+    }
 
     // Filter by search term (client-side for simplicity with Firestore)
     if (search) {
