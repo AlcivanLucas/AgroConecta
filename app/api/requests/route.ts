@@ -60,15 +60,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for existing pending request
-    const existingRequest = await serviceRequestsCollection
+    // Check for existing pending request (query by requesterId only to avoid composite index)
+    const existingRequestSnapshot = await serviceRequestsCollection
       .where('requesterId', '==', payload.userId)
-      .where('announcementId', '==', announcementId)
-      .where('status', '==', 'pendente')
-      .limit(1)
       .get()
 
-    if (!existingRequest.empty) {
+    const alreadyPending = existingRequestSnapshot.docs.some(doc => {
+      const data = doc.data()
+      return data.announcementId === announcementId && data.status === 'pendente'
+    })
+
+    if (alreadyPending) {
       return NextResponse.json(
         { error: 'Conflito', message: 'Você já tem uma solicitação pendente para este anúncio' },
         { status: 409 }

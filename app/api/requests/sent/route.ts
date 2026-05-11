@@ -26,13 +26,15 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await serviceRequestsCollection
       .where('requesterId', '==', payload.userId)
-      .orderBy('createdAt', 'desc')
       .get()
 
-    const requests = snapshot.docs.map(doc => ({
-      ...doc.data(),
-      id: doc.id,
-    })) as ServiceRequest[]
+    const requests = snapshot.docs
+      .map(doc => ({ ...doc.data(), id: doc.id }) as ServiceRequest)
+      .sort((a, b) => {
+        const aTime = (a.createdAt as any)?._seconds ?? new Date(a.createdAt).getTime() / 1000
+        const bTime = (b.createdAt as any)?._seconds ?? new Date(b.createdAt).getTime() / 1000
+        return bTime - aTime
+      })
 
     return NextResponse.json({ requests })
   } catch (error) {
