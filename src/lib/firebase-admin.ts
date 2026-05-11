@@ -14,10 +14,16 @@ if (!getApps().length && process.env.FIREBASE_PROJECT_ID) {
 }
 
 export const db = getFirestore()
-db.settings({ ignoreUndefinedProperties: true })
+try {
+  db.settings({ ignoreUndefinedProperties: true })
+} catch {
+  // settings() already called on this Firestore instance (hot-reload)
+}
 
 // Collection references
 export const usersCollection = db.collection('users')
 export const announcementsCollection = db.collection('announcements')
 export const serviceRequestsCollection = db.collection('serviceRequests')
 export const savedAnnouncementsCollection = db.collection('savedAnnouncements')
+export const conversationsCollection = db.collection('conversations')
+export const messagesCollection = db.collection('messages')

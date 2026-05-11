@@ -134,6 +134,33 @@ export interface ServiceRequestForm {
   announcementId: string
 }
 
+// Messaging types
+export interface ConversationParticipant {
+  name: string
+  role: UserRole
+  farmName?: string
+}
+
+export interface Conversation {
+  id: string
+  participantIds: string[]
+  participants: Record<string, ConversationParticipant>
+  lastMessage: string
+  lastMessageAt: Date
+  createdAt: Date
+  relatedAnnouncementId?: string
+  relatedAnnouncementTitle?: string
+}
+
+export interface Message {
+  id: string
+  conversationId: string
+  senderId: string
+  senderName: string
+  text: string
+  createdAt: Date
+}
+
 // Filter types
 export interface AnnouncementFilters {
   search?: string

@@ -131,6 +131,29 @@ export const requestsApi = {
     }),
 }
 
+// Conversations API
+export const conversationsApi = {
+  list: () =>
+    apiFetch<{ conversations: any[] }>('/conversations', { authenticated: true }),
+
+  create: (data: { recipientId: string; relatedAnnouncementId?: string; relatedAnnouncementTitle?: string }) =>
+    apiFetch<{ conversation: any }>('/conversations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      authenticated: true,
+    }),
+
+  getMessages: (conversationId: string) =>
+    apiFetch<{ messages: any[] }>(`/conversations/${conversationId}/messages`, { authenticated: true }),
+
+  sendMessage: (conversationId: string, text: string) =>
+    apiFetch<{ message: any }>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+      authenticated: true,
+    }),
+}
+
 // Users API
 export const usersApi = {
   updateMe: (data: any) =>
