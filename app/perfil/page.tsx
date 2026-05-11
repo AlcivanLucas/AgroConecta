@@ -29,12 +29,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { Navbar } from '@/src/components/layout/navbar'
 import { Footer } from '@/src/components/layout/footer'
 import { AnnouncementCard, AnnouncementCardSkeleton } from '@/src/components/marketplace'
 import { authApi, announcementsApi, requestsApi, usersApi, conversationsApi } from '@/src/lib/api'
 import { getAuth, saveAuth, clearAuth } from '@/src/lib/auth'
-import { brazilianStates } from '@/src/utils/validations'
+import { brazilianStates, categories, chargeTypes } from '@/src/utils/validations'
 import type { User as UserType, Announcement, ServiceRequest, RequestStatus } from '@/src/types'
 
 const statusLabels: Record<RequestStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -62,6 +64,13 @@ export default function PerfilPage() {
   const [loadingSaved, setLoadingSaved] = useState(false)
   const [loadingReceived, setLoadingReceived] = useState(false)
   const [loadingSent, setLoadingSent] = useState(false)
+
+  // Edit announcement modal
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null)
+  const [editAnnouncementForm, setEditAnnouncementForm] = useState({
+    title: '', description: '', price: '', chargeType: '', category: '', city: '', state: '', imageUrls: '',
+  })
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false)
 
   // Edit profile
   const [isEditing, setIsEditing] = useState(false)
@@ -195,6 +204,48 @@ export default function PerfilPage() {
       toast.error(error instanceof Error ? error.message : 'Erro ao atualizar status')
     } finally {
       setUpdatingRequestId(null)
+    }
+  }
+
+  const openEditAnnouncement = (announcement: Announcement) => {
+    setEditingAnnouncement(announcement)
+    setEditAnnouncementForm({
+      title: announcement.title,
+      description: announcement.description,
+      price: String(announcement.price),
+      chargeType: announcement.chargeType,
+      category: announcement.category,
+      city: announcement.city,
+      state: announcement.state,
+      imageUrls: announcement.imageUrls.join(', '),
+    })
+  }
+
+  const handleSaveAnnouncement = async () => {
+    if (!editingAnnouncement) return
+    setIsSavingAnnouncement(true)
+    try {
+      const imageUrls = editAnnouncementForm.imageUrls
+        .split(',')
+        .map(u => u.trim())
+        .filter(Boolean)
+      await announcementsApi.update(editingAnnouncement.id, {
+        title: editAnnouncementForm.title,
+        description: editAnnouncementForm.description,
+        price: Number(editAnnouncementForm.price),
+        chargeType: editAnnouncementForm.chargeType,
+        category: editAnnouncementForm.category,
+        city: editAnnouncementForm.city,
+        state: editAnnouncementForm.state,
+        imageUrls,
+      })
+      toast.success('Anúncio atualizado!')
+      setEditingAnnouncement(null)
+      loadMyAnnouncements()
+    } catch {
+      toast.error('Erro ao atualizar anúncio')
+    } finally {
+      setIsSavingAnnouncement(false)
     }
   }
 
@@ -345,7 +396,17 @@ export default function PerfilPage() {
                   {myAnnouncements.map((announcement) => (
                     <div key={announcement.id} className="relative group">
                       <AnnouncementCard announcement={announcement} />
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            openEditAnnouncement(announcement)
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="destructive"
                           size="icon"
@@ -661,6 +722,113 @@ export default function PerfilPage() {
       </main>
 
       <Footer />
+
+      {/* Edit Announcement Modal */}
+      <Dialog open={!!editingAnnouncement} onOpenChange={(open) => !open && setEditingAnnouncement(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Anúncio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label>Título</Label>
+              <Input
+                value={editAnnouncementForm.title}
+                onChange={e => setEditAnnouncementForm(f => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Descrição</Label>
+              <Textarea
+                rows={3}
+                value={editAnnouncementForm.description}
+                onChange={e => setEditAnnouncementForm(f => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Preço (R$)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editAnnouncementForm.price}
+                  onChange={e => setEditAnnouncementForm(f => ({ ...f, price: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Cobrança</Label>
+                <Select
+                  value={editAnnouncementForm.chargeType}
+                  onValueChange={v => setEditAnnouncementForm(f => ({ ...f, chargeType: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {chargeTypes.map(c => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Categoria</Label>
+              <Select
+                value={editAnnouncementForm.category}
+                onValueChange={v => setEditAnnouncementForm(f => ({ ...f, category: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Cidade</Label>
+                <Input
+                  value={editAnnouncementForm.city}
+                  onChange={e => setEditAnnouncementForm(f => ({ ...f, city: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Estado</Label>
+                <Select
+                  value={editAnnouncementForm.state}
+                  onValueChange={v => setEditAnnouncementForm(f => ({ ...f, state: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {brazilianStates.map(s => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>URLs das imagens</Label>
+              <Textarea
+                rows={2}
+                placeholder="https://... (separe por vírgula)"
+                value={editAnnouncementForm.imageUrls}
+                onChange={e => setEditAnnouncementForm(f => ({ ...f, imageUrls: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingAnnouncement(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveAnnouncement} disabled={isSavingAnnouncement}>
+              {isSavingAnnouncement ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+              ) : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
