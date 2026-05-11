@@ -29,16 +29,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { id: announcementId } = await params
 
-    // Check if already saved
+    // Check if already saved (query by userId only to avoid composite index requirement)
     const existingSnapshot = await savedAnnouncementsCollection
       .where('userId', '==', payload.userId)
-      .where('announcementId', '==', announcementId)
-      .limit(1)
       .get()
 
-    if (!existingSnapshot.empty) {
-      // Remove save
-      await savedAnnouncementsCollection.doc(existingSnapshot.docs[0].id).delete()
+    const existingDoc = existingSnapshot.docs.find(
+      doc => doc.data().announcementId === announcementId
+    )
+
+    if (existingDoc) {
+      await savedAnnouncementsCollection.doc(existingDoc.id).delete()
       return NextResponse.json({ saved: false })
     }
 

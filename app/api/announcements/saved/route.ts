@@ -26,10 +26,15 @@ export async function GET(request: NextRequest) {
 
     const savedSnapshot = await savedAnnouncementsCollection
       .where('userId', '==', payload.userId)
-      .orderBy('createdAt', 'desc')
       .get()
 
-    const savedItems = savedSnapshot.docs.map(doc => doc.data()) as SavedAnnouncement[]
+    const savedItems = savedSnapshot.docs
+      .map(doc => doc.data() as SavedAnnouncement)
+      .sort((a, b) => {
+        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)._seconds * 1000
+        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)._seconds * 1000
+        return bTime - aTime
+      })
 
     // Get announcement details
     const announcements: Announcement[] = []
