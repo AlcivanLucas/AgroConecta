@@ -108,12 +108,12 @@ function MarketplaceContent() {
               <div className="flex flex-wrap gap-4">
                 <div className="w-full sm:w-auto min-w-[200px]">
                   <label className="text-sm font-medium mb-1 block">Categoria</label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <Select value={selectedCategory || 'all'} onValueChange={(v) => setSelectedCategory(v === 'all' ? '' : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todas as categorias" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as categorias</SelectItem>
+                      <SelectItem value="all">Todas as categorias</SelectItem>
                       {categories.map((cat) => (
                         <SelectItem key={cat.value} value={cat.value}>
                           {cat.label}
@@ -125,12 +125,12 @@ function MarketplaceContent() {
 
                 <div className="w-full sm:w-auto min-w-[200px]">
                   <label className="text-sm font-medium mb-1 block">Estado</label>
-                  <Select value={selectedState} onValueChange={setSelectedState}>
+                  <Select value={selectedState || 'all'} onValueChange={(v) => setSelectedState(v === 'all' ? '' : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos os estados" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos os estados</SelectItem>
+                      <SelectItem value="all">Todos os estados</SelectItem>
                       {brazilianStates.map((state) => (
                         <SelectItem key={state.value} value={state.value}>
                           {state.label}
