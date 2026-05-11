@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { Menu, X, User, LogOut, Tractor } from 'lucide-react'
+import { Menu, X, User, LogOut, Tractor, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -85,6 +85,12 @@ export function Navbar() {
                     Criar Anúncio
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/mensagens" className="cursor-pointer">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Mensagens
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -148,6 +154,13 @@ export function Navbar() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Criar Anúncio
+                </Link>
+                <Link
+                  href="/mensagens"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-muted"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Mensagens
                 </Link>
                 <button
                   onClick={handleLogout}

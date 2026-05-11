@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  User, 
-  Plus, 
-  Heart, 
-  Inbox, 
-  Send, 
+import {
+  User,
+  Plus,
+  Heart,
+  Inbox,
+  Send,
   Settings,
   Loader2,
   MapPin,
@@ -18,7 +18,8 @@ import {
   Trash2,
   Check,
   X,
-  Clock
+  Clock,
+  MessageSquare
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Navbar } from '@/src/components/layout/navbar'
 import { Footer } from '@/src/components/layout/footer'
 import { AnnouncementCard, AnnouncementCardSkeleton } from '@/src/components/marketplace'
-import { authApi, announcementsApi, requestsApi, usersApi } from '@/src/lib/api'
+import { authApi, announcementsApi, requestsApi, usersApi, conversationsApi } from '@/src/lib/api'
 import { getAuth, saveAuth, clearAuth } from '@/src/lib/auth'
 import { brazilianStates } from '@/src/utils/validations'
 import type { User as UserType, Announcement, ServiceRequest, RequestStatus } from '@/src/types'
@@ -168,6 +169,18 @@ export default function PerfilPage() {
       console.error('Error loading sent:', error)
     } finally {
       setLoadingSent(false)
+    }
+  }
+
+  const handleStartChatFromRequest = async (recipientId: string, announcementTitle: string) => {
+    try {
+      const { conversation } = await conversationsApi.create({
+        recipientId,
+        relatedAnnouncementTitle: announcementTitle,
+      })
+      router.push(`/mensagens/${conversation.id}`)
+    } catch {
+      toast.error('Erro ao abrir conversa')
     }
   }
 
@@ -417,57 +430,67 @@ export default function PerfilPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground mb-4">{request.message}</p>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDate(request.createdAt)}
                           </span>
-                          {request.status === 'pendente' && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleUpdateRequestStatus(request.id, 'recusada')}
-                                disabled={updatingRequestId === request.id}
-                              >
-                                {updatingRequestId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <X className="h-4 w-4 mr-1" />
-                                    Recusar
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleUpdateRequestStatus(request.id, 'aceita')}
-                                disabled={updatingRequestId === request.id}
-                              >
-                                {updatingRequestId === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Check className="h-4 w-4 mr-1" />
-                                    Aceitar
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          )}
-                          {request.status === 'aceita' && (
+                          <div className="flex gap-2 flex-wrap">
                             <Button
                               size="sm"
-                              onClick={() => handleUpdateRequestStatus(request.id, 'concluida')}
-                              disabled={updatingRequestId === request.id}
+                              variant="outline"
+                              onClick={() => handleStartChatFromRequest(request.requesterId, request.announcementSnapshot.title)}
                             >
-                              {updatingRequestId === request.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                'Marcar como concluída'
-                              )}
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Chat
                             </Button>
-                          )}
+                            {request.status === 'pendente' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateRequestStatus(request.id, 'recusada')}
+                                  disabled={updatingRequestId === request.id}
+                                >
+                                  {updatingRequestId === request.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <X className="h-4 w-4 mr-1" />
+                                      Recusar
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleUpdateRequestStatus(request.id, 'aceita')}
+                                  disabled={updatingRequestId === request.id}
+                                >
+                                  {updatingRequestId === request.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Check className="h-4 w-4 mr-1" />
+                                      Aceitar
+                                    </>
+                                  )}
+                                </Button>
+                              </>
+                            )}
+                            {request.status === 'aceita' && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateRequestStatus(request.id, 'concluida')}
+                                disabled={updatingRequestId === request.id}
+                              >
+                                {updatingRequestId === request.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  'Marcar como concluída'
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -517,28 +540,38 @@ export default function PerfilPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-muted-foreground mb-4">{request.message}</p>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDate(request.createdAt)}
                           </span>
-                          {request.status === 'pendente' && (
+                          <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleUpdateRequestStatus(request.id, 'cancelada')}
-                              disabled={updatingRequestId === request.id}
+                              onClick={() => handleStartChatFromRequest(request.providerId, request.announcementSnapshot.title)}
                             >
-                              {updatingRequestId === request.id ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                  Cancelando...
-                                </>
-                              ) : (
-                                'Cancelar solicitação'
-                              )}
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Chat
                             </Button>
-                          )}
+                            {request.status === 'pendente' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateRequestStatus(request.id, 'cancelada')}
+                                disabled={updatingRequestId === request.id}
+                              >
+                                {updatingRequestId === request.id ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                    Cancelando...
+                                  </>
+                                ) : (
+                                  'Cancelar solicitação'
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

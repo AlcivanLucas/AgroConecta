@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dialog'
 import { Navbar } from '@/src/components/layout/navbar'
 import { Footer } from '@/src/components/layout/footer'
-import { announcementsApi, requestsApi } from '@/src/lib/api'
+import { announcementsApi, requestsApi, conversationsApi } from '@/src/lib/api'
 import { getAuth } from '@/src/lib/auth'
 import { categories, chargeTypes } from '@/src/utils/validations'
 import type { Announcement } from '@/src/types'
@@ -47,6 +47,7 @@ export default function AnuncioPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isStartingChat, setIsStartingChat] = useState(false)
   const [isRequestOpen, setIsRequestOpen] = useState(false)
   const [requestMessage, setRequestMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -87,6 +88,28 @@ export default function AnuncioPage({ params }: PageProps) {
       toast.error('Erro ao salvar anúncio')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleStartChat = async () => {
+    if (!token) {
+      toast.error('Faça login para enviar mensagens')
+      router.push('/login')
+      return
+    }
+    if (!announcement) return
+    setIsStartingChat(true)
+    try {
+      const { conversation } = await conversationsApi.create({
+        recipientId: announcement.userId,
+        relatedAnnouncementId: announcement.id,
+        relatedAnnouncementTitle: announcement.title,
+      })
+      router.push(`/mensagens/${conversation.id}`)
+    } catch {
+      toast.error('Erro ao iniciar conversa')
+    } finally {
+      setIsStartingChat(false)
     }
   }
 
@@ -292,9 +315,23 @@ export default function AnuncioPage({ params }: PageProps) {
                   </div>
 
                   {!isOwner && (
+                    <>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={handleStartChat}
+                      disabled={isStartingChat}
+                    >
+                      {isStartingChat ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                      )}
+                      Enviar Mensagem
+                    </Button>
                     <Dialog open={isRequestOpen} onOpenChange={setIsRequestOpen}>
                       <DialogTrigger asChild>
-                        <Button className="w-full mt-4" size="lg">
+                        <Button className="w-full mt-2" size="lg">
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Solicitar Serviço
                         </Button>
@@ -338,6 +375,7 @@ export default function AnuncioPage({ params }: PageProps) {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                    </>
                   )}
 
                   {isOwner && (
