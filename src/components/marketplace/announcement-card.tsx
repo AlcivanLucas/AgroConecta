@@ -98,10 +98,11 @@ export function AnnouncementCard({ announcement }: AnnouncementCardProps) {
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>
-                {new Date(announcement.createdAt).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: 'short',
-                })}
+                {(() => {
+                  const raw = announcement.createdAt as any
+                  const ms = raw?._seconds ? raw._seconds * 1000 : new Date(raw).getTime()
+                  return new Date(ms).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                })()}
               </span>
             </div>
           </div>
